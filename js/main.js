@@ -28,6 +28,17 @@
     );
   }
 
+  /* ---- Mobile "Plans" submenu ---- */
+  const plansToggle = document.getElementById("mobilePlansToggle");
+  const plansList = document.getElementById("mobilePlansList");
+  if (plansToggle && plansList) {
+    plansToggle.addEventListener("click", () => {
+      const open = plansToggle.getAttribute("aria-expanded") === "true";
+      plansToggle.setAttribute("aria-expanded", String(!open));
+      plansList.classList.toggle("is-open", !open);
+    });
+  }
+
   /* ---- Populate state dropdown ---- */
   const states = ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"];
   const stateSel = document.getElementById("state");
