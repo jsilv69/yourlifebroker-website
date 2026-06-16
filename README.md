@@ -49,13 +49,29 @@ yourlifebroker-site/
 └── assets/             # logo lockups (SVG), hero photo, carrier logos
 ```
 
+## SEO
+
+- `robots.txt` (allows all, references the sitemap) and `sitemap.xml` (7 canonical URLs) sit at
+  the site root.
+- Every page has a unique title (~50–60 chars), meta description (~150–160), self-referencing
+  canonical, Open Graph + Twitter Card tags, and a shared 1200×630 `assets/og-image.jpg`.
+- Structured data: `InsuranceAgency` + `WebSite` site-wide; `BreadcrumbList` + `FAQPage` on each
+  plan page.
+- Performance: hero image preloaded and served as WebP with a responsive `srcset`; Google Fonts
+  loaded non-render-blocking; all images carry width/height (CLS ≈ 0).
+- Lighthouse (mobile, local): home 96 / 100 / 100 / 100; plan pages 100 / 100 / 100 / 100
+  (Performance / Accessibility / Best Practices / SEO). Core Web Vitals in "Good".
+
 ## Notes for going live
 
 - The quote form is a front-end demo. Wire `#quoteForm` submit in `js/main.js` to the real
   CRM / email endpoint.
 - **Phone numbers** are placeholders — `(888) 888-8888` throughout. Replace with the real line.
-- **Email/domain** assume `yourlifebroker.com` (canonicals, OG URLs, `hello@yourlifebroker.com`).
-  Confirm the live domain and mailbox.
+- **Email/domain** assume `yourlifebroker.com` (canonicals, OG URLs, sitemap, `hello@yourlifebroker.com`).
+  Confirm the live domain and mailbox; if it changes, update those absolute URLs.
+- **Host config (not in static files):** enforce one canonical host (301 `www` → non-`www`),
+  serve over HTTPS, and enable Brotli/Gzip + CSS/JS/HTML minification. Re-run Lighthouse against
+  the production URL (PageSpeed Insights) to confirm field Core Web Vitals.
 - Replace the placeholder testimonials with real, attributed client reviews.
 - Stat figures (families protected, total benefits, satisfaction) are placeholders — confirm
   the real numbers before launch.

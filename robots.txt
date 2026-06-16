@@ -1,0 +1,5 @@
+# robots.txt — YourLifeBroker
+User-agent: *
+Allow: /
+
+Sitemap: https://yourlifebroker.com/sitemap.xml
