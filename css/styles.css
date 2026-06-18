@@ -121,7 +121,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .header { position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,.85); backdrop-filter: blur(14px); border-bottom: 1px solid transparent; transition: box-shadow .3s, border-color .3s, background .3s; }
 .header.is-stuck { box-shadow: var(--shadow-sm); border-color: var(--line); background: rgba(255,255,255,.95); }
 .header__inner { display: flex; align-items: center; gap: 24px; min-height: 76px; }
-.header__logo { height: 54px; width: auto; }
+.header__logo { height: 79px; width: auto; }
 .nav { display: flex; gap: 4px; margin-left: auto; }
 .nav a { font-weight: 600; font-size: 15px; color: var(--ink); padding: 9px 14px; border-radius: 10px; transition: color .2s, background .2s; }
 .nav a:hover { color: var(--navy-600); background: var(--navy-50); }
@@ -391,7 +391,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 /* ---------- Footer ---------- */
 .footer { background: #0a1a30; color: #aebccf; }
 .footer__grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.2fr; gap: 40px; padding: clamp(48px, 6vw, 76px) 24px clamp(36px, 4vw, 56px); }
-.footer__logo { height: 62px; width: auto; margin-bottom: 18px; }
+.footer__logo { height: 87px; width: auto; margin-bottom: 18px; }
 .footer__brand p { margin-bottom: 22px; max-width: 26em; font-size: .98rem; }
 .footer__col h3 { color: #fff; font-size: 1rem; margin-bottom: 18px; letter-spacing: -.01em; }
 .footer__col ul { display: grid; gap: 11px; }
@@ -521,7 +521,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .feature__icon, .coverage__icon, .nav-dropdown__ico, .floatcard__icon { color: var(--navy-700); }
 .feature__icon svg, .coverage__icon svg { width: 28px; height: 28px; }
 .nav-dropdown__ico svg { width: 20px; height: 20px; }
-.floatcard__icon { width: 46px; height: 46px; background: var(--navy-50); border-radius: 12px; }
+.floatcard__icon { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; background: var(--navy-50); border-radius: 12px; }
 .floatcard__icon svg { width: 24px; height: 24px; }
 .plan-aside__list span { display: inline-flex; }
 .plan-aside__list svg { width: 18px; height: 18px; color: var(--navy-700); flex: none; }
