@@ -1,8 +1,8 @@
 # YourLifeBroker — Website
 
-Marketing site for **YourLifeBroker**, an independent life insurance brokerage.
+Marketing site for **YourLifeBroker**, an independent life insurance agency.
 Built on the YourLifeBroker brand identity (Ink Navy + Heritage Gold, Spectral + Archivo)
-with a calm, plain-spoken broker voice — "we work for you, not the insurer."
+with a calm, plain-spoken agent voice — "we work for you, not the insurer."
 
 Built as a self-contained static site — no build step, no dependencies. Just open `index.html`.
 
@@ -21,8 +21,8 @@ Built as a self-contained static site — no build step, no dependencies. Just o
 
 ## Pages
 
-- **Home** (`index.html`) — Hero → Carriers → Why a Broker → Coverage Options → How It Works →
-  The Broker Difference/Stats → Testimonials → FAQ → Quote → Footer.
+- **Home** (`index.html`) — Hero → Carriers → Why an Agent → Coverage Options → How It Works →
+  The Agent Difference/Stats → Testimonials → FAQ → Quote → Footer.
 - **Plans** (`plans/*.html`) — one SEO-targeted sub-page per coverage option (whole life, term
   life, final expense, indexed universal life, children & spouse, accidental & living benefits),
   each with unique title/meta/keywords, JSON-LD (`BreadcrumbList` + `FAQPage`), tailored copy,
