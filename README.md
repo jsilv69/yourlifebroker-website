@@ -85,10 +85,15 @@ Copy `.env.example` → `.env` and fill in:
 | `MONDAY_TOKEN` | API token (monday.com → avatar → Developers → My access tokens) |
 | `MONDAY_BOARD_ID` | The board that receives leads (the number in the board URL) |
 | `MONDAY_GROUP_ID` | *(optional)* group/section to drop leads into |
-| `COL_*` | The **column IDs** on your board for email, phone, state, coverage, age, gender, nicotine, and optional status |
+| `COL_PHONE` / `COL_STATUS` / `COL_SOURCE` | Confirmed columns on the YLB Leads board (`lead_phone`, `lead_status`, `text_mm4f2gw1`) |
+| `COL_NOTES` | Long-text column (`long_text_mm4k9vaw`) — gets a full summary of every answer |
+| `COL_EMAIL` / `COL_STATE` / `COL_COVERAGE` / `COL_AGE` / `COL_GENDER` / `COL_NICOTINE` | *(optional)* set only if you create dedicated columns for these web-only fields |
 
-> Reuse the **same board** as the existing `ylb-monday-aircall` (Aircall→Monday) service so
-> web-form leads and inbound-call leads land together.
+> **Any `COL_*` left blank is skipped** — no error, the field just isn't written as its own
+> column (it still appears in the Notes summary). The defaults in `.env.example` are pre-filled
+> with the **YLB Leads board** (`18417923566`) and the columns already used by the
+> `ylb-monday-aircall` (Aircall→Monday) service, so web-form leads and inbound-call leads land
+> on the **same board**.
 
 ### 2. Find your column IDs
 Column IDs are not the column titles. List them with:
@@ -110,9 +115,10 @@ node server.js          # serves the site + /api/lead on http://localhost:8080
 ### 4. Deploy to Fly
 ```bash
 fly launch --no-deploy   # first time — creates the app from fly.toml
-fly secrets set MONDAY_TOKEN=xxx MONDAY_BOARD_ID=123 COL_EMAIL=email COL_PHONE=phone \
-  COL_STATE=text_state COL_COVERAGE=text_coverage COL_AGE=numbers_age \
-  COL_GENDER=text_gender COL_NICOTINE=text_nicotine
+fly secrets set \
+  MONDAY_TOKEN=your_token_here \
+  MONDAY_BOARD_ID=18417923566 \
+  COL_PHONE=lead_phone COL_STATUS=lead_status COL_SOURCE=text_mm4f2gw1 COL_NOTES=long_text_mm4k9vaw
 fly deploy
 ```
 Secrets are encrypted by Fly and injected as env vars — none are committed to the repo.

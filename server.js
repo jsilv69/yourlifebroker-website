@@ -24,17 +24,35 @@ const {
 
 // --- Map each form field to a column ID on YOUR Monday board. ---
 // Override any of these with COL_* env vars (see .env.example / README).
+// An unset/blank COL_* means "don't write this field" — no guessed defaults, so the
+// payload never references a column that doesn't exist on the board.
 const COLS = {
-  email:    process.env.COL_EMAIL    || "email",
-  phone:    process.env.COL_PHONE    || "phone",
-  state:    process.env.COL_STATE    || "text_state",
-  coverage: process.env.COL_COVERAGE || "text_coverage",
-  age:      process.env.COL_AGE      || "numbers_age",
-  gender:   process.env.COL_GENDER   || "text_gender",
-  nicotine: process.env.COL_NICOTINE || "text_nicotine",
-  status:   process.env.COL_STATUS   || "",   // e.g. a "Lead status" column; blank to skip
+  email:    process.env.COL_EMAIL    || "",
+  phone:    process.env.COL_PHONE    || "",
+  state:    process.env.COL_STATE    || "",
+  coverage: process.env.COL_COVERAGE || "",
+  age:      process.env.COL_AGE      || "",
+  gender:   process.env.COL_GENDER   || "",
+  nicotine: process.env.COL_NICOTINE || "",
+  status:   process.env.COL_STATUS   || "",   // a "status" column
+  source:   process.env.COL_SOURCE   || "",   // a text column tagging where the lead came from
+  notes:    process.env.COL_NOTES    || "",   // a long-text column: full answer summary
 };
 const STATUS_LABEL = process.env.MONDAY_STATUS_LABEL || "New Lead";
+const LEAD_SOURCE = process.env.LEAD_SOURCE || "Website Quote Form";
+
+// Human-readable summary of every answer — handy when the board lacks a column per field.
+const buildNotes = (lead) =>
+  [
+    `Source: ${LEAD_SOURCE}`,
+    `Coverage: ${lead.coverage || "—"}`,
+    `State: ${lead.state || "—"}`,
+    `Age: ${lead.age || "—"}`,
+    `Gender: ${lead.gender || "—"}`,
+    `Nicotine: ${lead.nicotine || "—"}`,
+    `Email: ${lead.email || "—"}`,
+    `Phone: ${lead.phone || "—"}`,
+  ].join("\n");
 
 // Optional CORS (only needed if the site is hosted on a different origin).
 app.use((req, res, next) => {
@@ -74,16 +92,19 @@ app.post("/api/lead", async (req, res) => {
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(lead.email)) return res.status(400).json({ ok: false, error: "Valid email is required" });
     if (lead.phone.length < 7) return res.status(400).json({ ok: false, error: "Valid phone is required" });
 
-    // Build Monday column_values.
+    // Build Monday column_values. A field is only sent if its column ID is configured,
+    // so leaving a COL_* blank cleanly skips that field (no empty-key payloads).
     const columnValues = {};
-    columnValues[COLS.email]    = { email: lead.email, text: lead.email };
-    columnValues[COLS.phone]    = { phone: lead.phone, countryShortName: "US" };
-    if (lead.state)    columnValues[COLS.state]    = lead.state;
-    if (lead.coverage) columnValues[COLS.coverage] = lead.coverage;
-    if (lead.gender)   columnValues[COLS.gender]   = lead.gender;
-    if (lead.nicotine) columnValues[COLS.nicotine] = lead.nicotine;
-    if (lead.age)      columnValues[COLS.age]      = Number(lead.age) || 0;
-    if (COLS.status)   columnValues[COLS.status]   = { label: STATUS_LABEL };
+    if (COLS.email)               columnValues[COLS.email]    = { email: lead.email, text: lead.email };
+    if (COLS.phone)               columnValues[COLS.phone]    = { phone: lead.phone, countryShortName: "US" };
+    if (COLS.state && lead.state)       columnValues[COLS.state]    = lead.state;
+    if (COLS.coverage && lead.coverage) columnValues[COLS.coverage] = lead.coverage;
+    if (COLS.gender && lead.gender)     columnValues[COLS.gender]   = lead.gender;
+    if (COLS.nicotine && lead.nicotine) columnValues[COLS.nicotine] = lead.nicotine;
+    if (COLS.age && lead.age)           columnValues[COLS.age]      = Number(lead.age) || 0;
+    if (COLS.status)              columnValues[COLS.status]   = { label: STATUS_LABEL };
+    if (COLS.source)              columnValues[COLS.source]   = LEAD_SOURCE;
+    if (COLS.notes)               columnValues[COLS.notes]    = { text: buildNotes(lead) };
 
     const query = `
       mutation ($board: ID!, $group: String, $name: String!, $cols: JSON!) {
