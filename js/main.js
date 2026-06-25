@@ -207,8 +207,17 @@
       }
     });
 
-    form.addEventListener("submit", (e) => {
+    const errorEl = document.getElementById("quizError");
+    const showError = (msg) => {
+      if (!errorEl) return;
+      errorEl.textContent = msg;
+      errorEl.hidden = false;
+    };
+
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (errorEl) errorEl.hidden = true;
+
       if (!form.checkValidity()) {
         // jump to the first step containing an invalid field
         const firstInvalid = form.querySelector(":invalid");
@@ -220,9 +229,35 @@
         }
         return;
       }
-      if (success) {
-        success.hidden = false;
-        success.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // Collect answers
+      const payload = Object.fromEntries(new FormData(form).entries());
+
+      const label = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting…";
+
+      try {
+        const resp = await fetch("/api/lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.error || "Something went wrong. Please try again.");
+        }
+        if (success) {
+          success.hidden = false;
+          success.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = label;
+        showError(
+          (err && err.message ? err.message : "We couldn't submit your request.") +
+            " You can also call us at (810) 512-7397."
+        );
       }
     });
 
