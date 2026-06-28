@@ -203,12 +203,19 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .carriers { padding: 36px 0; border-block: 1px solid var(--line); background: #fff; }
 .carriers__label { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 22px; }
 .carriers__label strong { color: var(--navy-700); }
-.carriers__viewport { overflow: hidden; }
-.carriers__logos { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: clamp(28px, 6vw, 64px); }
-.carriers__logos img { height: 30px; width: auto; object-fit: contain; filter: grayscale(1) opacity(.55); transition: filter .3s; }
+/* Single-line, auto-scrolling carrier marquee (all viewports).
+   Track = 7 logos + 7 clones; translateX(-50%) scrolls one full set seamlessly. */
+.carriers__viewport {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.carriers__logos { display: flex; flex-wrap: nowrap; align-items: center; width: max-content; gap: clamp(40px, 6vw, 72px); }
+.carriers__track { animation: carrier-scroll 45s linear infinite; }
+.carriers__track:hover { animation-play-state: paused; }
+.carriers__logos img { flex: 0 0 auto; height: 32px; width: auto; object-fit: contain; filter: grayscale(1) opacity(.55); transition: filter .3s; }
 .carriers__logos img:hover { filter: grayscale(0) opacity(1); }
-/* clones only used for the mobile auto-scrolling carousel */
-.carriers__logos .is-clone { display: none; }
+.carriers__track .is-clone { display: block; }
 
 /* ---------- Sections ---------- */
 .section { padding: clamp(60px, 8vw, 110px) 0; }
@@ -438,11 +445,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   body { padding-bottom: 76px; }
   .footer__grid { grid-template-columns: 1fr; gap: 32px; }
   .footer__bar-inner { justify-content: center; text-align: center; }
-  /* infinite auto-playing carousel, 2 logos per view */
-  .carriers__track { flex-wrap: nowrap; justify-content: flex-start; gap: 0; width: max-content; animation: carrier-scroll 16s linear infinite; }
-  .carriers__track .is-clone { display: block; }
-  .carriers__track img { flex: 0 0 calc(50vw - 24px); height: 26px; padding-inline: 16px; }
-  .carriers__track:hover { animation-play-state: paused; }
+  /* smaller, slightly faster marquee on phones */
+  .carriers__logos { gap: 40px; }
+  .carriers__logos img { height: 26px; }
+  .carriers__track { animation-duration: 30s; }
 }
 
 @keyframes carrier-scroll {
