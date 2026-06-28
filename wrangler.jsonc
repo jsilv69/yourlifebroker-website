@@ -1,0 +1,13 @@
+{
+  // Cloudflare Workers — STATIC site only (the /api/lead backend runs on Fly).
+  // Having this config makes `wrangler deploy` non-interactive in CI.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yourlifebroker-website",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    // Serve the repo root as static assets. Non-site files are excluded via .assetsignore.
+    "directory": ".",
+    // Multi-page marketing site (not an SPA): return a real 404 for unknown paths.
+    "not_found_handling": "404-page"
+  }
+}

@@ -54,14 +54,22 @@ const buildNotes = (lead) =>
     `Phone: ${lead.phone || "—"}`,
   ].join("\n");
 
-// Optional CORS (only needed if the site is hosted on a different origin).
+// CORS — the static site is hosted on Cloudflare (different origin), so the browser
+// sends a cross-origin POST (with an OPTIONS preflight) to this Fly API.
+// ALLOW_ORIGIN may be a single origin, a comma-separated list, or "*".
+const ALLOWED_ORIGINS = (ALLOW_ORIGIN || "").split(",").map((s) => s.trim()).filter(Boolean);
+const allowAll = ALLOWED_ORIGINS.includes("*");
 app.use((req, res, next) => {
-  if (ALLOW_ORIGIN) {
-    res.set("Access-Control-Allow-Origin", ALLOW_ORIGIN);
-    res.set("Access-Control-Allow-Headers", "Content-Type");
-    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    if (req.method === "OPTIONS") return res.sendStatus(204);
+  const origin = req.headers.origin;
+  if (allowAll) {
+    res.set("Access-Control-Allow-Origin", "*");
+  } else if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
   }
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 

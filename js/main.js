@@ -237,8 +237,12 @@
       submitBtn.disabled = true;
       submitBtn.textContent = "Submitting…";
 
+      // The static site is hosted on Cloudflare; the lead API runs on Fly (cross-origin).
+      // Update this if your Fly app name / custom domain differs.
+      const LEAD_ENDPOINT = "https://yourlifebroker-website.fly.dev/api/lead";
+
       try {
-        const resp = await fetch("/api/lead", {
+        const resp = await fetch(LEAD_ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

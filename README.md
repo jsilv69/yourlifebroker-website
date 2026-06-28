@@ -4,10 +4,25 @@ Marketing site for **YourLifeBroker**, an independent life insurance agency.
 Built on the YourLifeBroker brand identity (Ink Navy + Heritage Gold, Spectral + Archivo)
 with a calm, plain-spoken agent voice — "we work for you, not the insurer."
 
-The site is static HTML/CSS/JS. A tiny Node/Express server (`server.js`) serves those files
-**and** exposes a `/api/lead` endpoint that forwards quote-form submissions to monday.com.
-For pure front-end work you can still just open `index.html`; to test the lead flow, run the
-server (see *Monday CRM integration* below).
+The site is static HTML/CSS/JS, with a `/api/lead` endpoint that forwards quote-form
+submissions to monday.com.
+
+**Hosting is split across two platforms:**
+
+- **Static site → Cloudflare** (Workers Static Assets). Config in `wrangler.jsonc`; deployed
+  with `wrangler deploy`. `.assetsignore` keeps the server/deploy files out of the upload.
+- **`/api/lead` API → Fly** (the Node/Express `server.js`, which Cloudflare can't run). See
+  *Monday CRM integration* below.
+
+Because they're on different origins, the form posts to the **absolute Fly URL** (the
+`LEAD_ENDPOINT` constant in `js/main.js`) and the Fly server allows the Cloudflare origin via
+the `ALLOW_ORIGIN` env var (CORS).
+
+> ⚠️ Two things to keep in sync: `LEAD_ENDPOINT` in `js/main.js` must point at your Fly app URL,
+> and `ALLOW_ORIGIN` on Fly must list your Cloudflare site origin(s).
+
+`server.js` can still serve the static files too (handy for local dev: `npm start`), but in
+production the canonical site is served by Cloudflare.
 
 ## Brand system
 
@@ -118,8 +133,19 @@ fly launch --no-deploy   # first time — creates the app from fly.toml
 fly secrets set \
   MONDAY_TOKEN=your_token_here \
   MONDAY_BOARD_ID=18417923566 \
-  COL_PHONE=lead_phone COL_STATUS=lead_status COL_SOURCE=text_mm4f2gw1 COL_NOTES=long_text_mm4k9vaw
+  COL_PHONE=lead_phone COL_STATUS=lead_status COL_SOURCE=text_mm4f2gw1 COL_NOTES=long_text_mm4k9vaw \
+  ALLOW_ORIGIN="https://yourlifebroker.com,https://yourlifebroker-website.pages.dev"
 fly deploy
+```
+
+`ALLOW_ORIGIN` is a comma-separated list of the Cloudflare origins allowed to call the API
+(your custom domain and/or the `*.workers.dev` / `*.pages.dev` URL). It can also be `*` to
+allow any origin.
+
+### 5. Deploy the static site to Cloudflare
+With `wrangler.jsonc` in the repo, the build is non-interactive:
+```bash
+npx wrangler deploy
 ```
 Secrets are encrypted by Fly and injected as env vars — none are committed to the repo.
 
