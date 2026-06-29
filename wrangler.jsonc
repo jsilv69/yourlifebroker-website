@@ -5,8 +5,9 @@
   "name": "yourlifebroker-website",
   "compatibility_date": "2025-09-01",
   "assets": {
-    // Serve the repo root as static assets. Non-site files are excluded via .assetsignore.
-    "directory": ".",
+    // Only the static site lives in public/ — server.js, node_modules, fly.toml, etc.
+    // stay at the repo root and are never uploaded.
+    "directory": "./public",
     // Multi-page marketing site (not an SPA): return a real 404 for unknown paths.
     "not_found_handling": "404-page"
   }

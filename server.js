@@ -153,7 +153,7 @@ app.post("/api/lead", async (req, res) => {
 // Health check for Fly.
 app.get("/healthz", (_req, res) => res.type("text").send("ok"));
 
-// Serve the static site (dotfiles like .env are ignored by default).
-app.use(express.static(__dirname, { extensions: ["html"], dotfiles: "ignore" }));
+// Serve the static site from public/ (same directory Cloudflare deploys).
+app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"], dotfiles: "ignore" }));
 
 app.listen(PORT, () => console.log(`YourLifeBroker listening on :${PORT}`));
