@@ -4,6 +4,26 @@
 (function () {
   "use strict";
 
+  /* ---- Marketing attribution (UTM params + ad click IDs) ---- */
+  // First-touch capture: record params from the first page that has them and
+  // persist for the visit, so they ride along with the lead sent to the CRM.
+  const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid"];
+  const attribution = (function () {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const stored = JSON.parse(sessionStorage.getItem("ylb_attr") || "{}");
+      let changed = false;
+      ATTR_KEYS.forEach((k) => {
+        const v = params.get(k);
+        if (v && !stored[k]) { stored[k] = v; changed = true; }
+      });
+      if (changed) sessionStorage.setItem("ylb_attr", JSON.stringify(stored));
+      return stored;
+    } catch (e) {
+      return {};
+    }
+  })();
+
   /* ---- Header shadow on scroll ---- */
   const header = document.getElementById("header");
   const onScroll = () => header.classList.toggle("is-stuck", window.scrollY > 8);
@@ -230,8 +250,9 @@
         return;
       }
 
-      // Collect answers
+      // Collect answers + marketing attribution (UTM / gclid) for the CRM
       const payload = Object.fromEntries(new FormData(form).entries());
+      Object.assign(payload, attribution);
 
       const label = submitBtn.textContent;
       submitBtn.disabled = true;
@@ -255,6 +276,16 @@
           success.hidden = false;
           success.scrollIntoView({ behavior: "smooth", block: "center" });
         }
+        // Conversion signal — GTM listens for this event to fire the Google Ads
+        // conversion (and GA4 generate_lead). Fires only on a successful submit.
+        try {
+          window.dataLayer = window.dataLayer || [];
+          window.dataLayer.push({
+            event: "generate_lead",
+            form_id: "quote_quiz",
+            lead_id: (data && data.id) || null,
+          });
+        } catch (e) {}
       } catch (err) {
         submitBtn.disabled = false;
         submitBtn.textContent = label;

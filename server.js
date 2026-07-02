@@ -41,9 +41,12 @@ const COLS = {
 const STATUS_LABEL = process.env.MONDAY_STATUS_LABEL || "New Lead";
 const LEAD_SOURCE = process.env.LEAD_SOURCE || "Website Quote Form";
 
+// Marketing attribution passed from the form (UTM params + ad click IDs).
+const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid"];
+
 // Human-readable summary of every answer — handy when the board lacks a column per field.
-const buildNotes = (lead) =>
-  [
+const buildNotes = (lead, attr = {}) => {
+  const lines = [
     `Source: ${LEAD_SOURCE}`,
     `Coverage: ${lead.coverage || "—"}`,
     `State: ${lead.state || "—"}`,
@@ -52,7 +55,11 @@ const buildNotes = (lead) =>
     `Nicotine: ${lead.nicotine || "—"}`,
     `Email: ${lead.email || "—"}`,
     `Phone: ${lead.phone || "—"}`,
-  ].join("\n");
+  ];
+  const marketing = ATTR_KEYS.filter((k) => attr[k]).map((k) => `${k}: ${attr[k]}`);
+  if (marketing.length) lines.push("", "Marketing:", ...marketing);
+  return lines.join("\n");
+};
 
 // CORS — the static site is hosted on Cloudflare (different origin), so the browser
 // sends a cross-origin POST (with an OPTIONS preflight) to this Fly API.
@@ -95,6 +102,10 @@ app.post("/api/lead", async (req, res) => {
       age:      clean(b.age),
     };
 
+    // Marketing attribution (UTM / click IDs) — optional, appended to Notes.
+    const attr = {};
+    for (const k of ATTR_KEYS) { const v = clean(b[k]); if (v) attr[k] = v; }
+
     // Minimal server-side validation.
     if (!lead.fname || !lead.lname) return res.status(400).json({ ok: false, error: "Name is required" });
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(lead.email)) return res.status(400).json({ ok: false, error: "Valid email is required" });
@@ -112,7 +123,7 @@ app.post("/api/lead", async (req, res) => {
     if (COLS.age && lead.age)           columnValues[COLS.age]      = Number(lead.age) || 0;
     if (COLS.status)              columnValues[COLS.status]   = { label: STATUS_LABEL };
     if (COLS.source)              columnValues[COLS.source]   = LEAD_SOURCE;
-    if (COLS.notes)               columnValues[COLS.notes]    = { text: buildNotes(lead) };
+    if (COLS.notes)               columnValues[COLS.notes]    = { text: buildNotes(lead, attr) };
 
     const query = `
       mutation ($board: ID!, $group: String, $name: String!, $cols: JSON!) {
