@@ -466,7 +466,9 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
    ================================================================= */
 .plan-hero { position: relative; background: var(--grad-navy); color: #fff; padding: clamp(44px, 6vw, 84px) 0 clamp(52px, 7vw, 92px); overflow: hidden; }
 .plan-hero::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 85% 12%, rgba(182,139,76,.16), transparent 48%); }
-.plan-hero__inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1.15fr .85fr; gap: clamp(32px, 5vw, 64px); align-items: center; }
+.plan-hero__inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1.02fr .98fr; gap: clamp(30px, 4vw, 56px); align-items: start; }
+.plan-hero__form { position: relative; z-index: 1; }
+.plan-hero__form .quote-form { box-shadow: var(--shadow-lg); }
 .plan-hero h1 { color: #fff; font-size: clamp(2rem, 4.2vw, 3rem); font-weight: 700; letter-spacing: -.03em; margin-bottom: 16px; }
 .plan-hero__sub { color: rgba(255,255,255,.88); font-size: clamp(1.02rem, 1.5vw, 1.18rem); max-width: 33em; margin-bottom: 26px; }
 .plan-hero__cta { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 30px; }

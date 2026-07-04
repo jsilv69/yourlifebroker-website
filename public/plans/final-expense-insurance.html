@@ -148,7 +148,7 @@
       </nav>
 
       <div class="header__actions">
-        <a href="../index.html#quote" class="btn btn--primary btn--sm">Get a Quote</a>
+        <a href="#quote" class="btn btn--primary btn--sm">Get a Quote</a>
       </div>
 
       <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileMenu">
@@ -178,14 +178,14 @@
       </nav>
       <div class="mobile-menu__actions">
         <a href="tel:+18105127397" class="btn btn--ghost btn--block">Call (810) 512-7397</a>
-        <a href="../index.html#quote" class="btn btn--primary btn--block">Get a Free Quote</a>
+        <a href="#quote" class="btn btn--primary btn--block">Get a Free Quote</a>
       </div>
     </div>
   </header>
 
   <main id="main">
     <!-- ============ PLAN HERO ============ -->
-    <section class="plan-hero">
+    <section class="plan-hero" id="quote">
       <div class="container plan-hero__inner">
         <div class="plan-hero__copy">
           <nav class="breadcrumb" aria-label="Breadcrumb">
@@ -197,7 +197,7 @@
           <h1>Final Expense Insurance</h1>
           <p class="plan-hero__sub">Small, affordable whole life coverage built to handle funeral, burial, and final medical bills — so your family is never left with the cost.</p>
           <div class="plan-hero__cta">
-            <a href="../index.html#quote" class="btn btn--gold btn--lg">Get My Free Quote</a>
+            <a href="#quote" class="btn btn--gold btn--lg">Get My Free Quote</a>
             <a href="tel:+18105127397" class="btn btn--outline btn--lg"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1.1l-2.2 2.1Z"/></svg> Call (810) 512-7397</a>
           </div>
           <ul class="plan-hero__facts">
@@ -207,12 +207,118 @@
             <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 16.2-3.5-3.5L4 14.2l5 5 11-11-1.5-1.4z"/></svg> Easy approval for seniors</li>
           </ul>
         </div>
-        <aside class="plan-hero__card" aria-label="Get started">
-          <div class="plan-hero__card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 7-16 16-16 0 9-7 16-16 16Z"/><path d="M5 21C9 16.5 13.5 13 18 10"/></svg></div>
-          <h2>Take the burden off your family</h2>
-          <p>Affordable coverage designed for final costs, with simple approval. Get your free quote in minutes.</p>
-          <a href="../index.html#quote" class="btn btn--gold btn--lg">Start My Free Quote</a>
-        </aside>
+                <div class="plan-hero__form">
+          <form class="quote-form quiz" id="quoteForm" novalidate>
+            <div class="quiz__head">
+              <h3 class="quote-form__title">Get your free quote</h3>
+              <div class="quiz__progress">
+                <div class="quiz__bar"><span id="quizBar"></span></div>
+                <span class="quiz__count">Step <b id="quizCur">1</b> of <span id="quizTotal">5</span></span>
+              </div>
+            </div>
+
+            <div class="quiz__steps">
+              <!-- Step 1: coverage -->
+              <fieldset class="quiz-step is-active" data-step="1">
+                <legend class="quiz-step__q">How much coverage do you need?</legend>
+                <p class="quiz-step__hint">Not sure? Pick your best guess — your agent can fine-tune it.</p>
+                <div class="quiz-options" data-autoadvance>
+                  <label class="quiz-option"><input type="radio" name="coverage" value="Under $25,000" required /><span class="quiz-option__txt"><b>Under $25,000</b><small>Final expense &amp; burial</small></span><span class="quiz-option__tick" aria-hidden="true"></span></label>
+                  <label class="quiz-option"><input type="radio" name="coverage" value="$25,000 – $100,000" /><span class="quiz-option__txt"><b>$25,000 – $100,000</b><small>Everyday protection</small></span><span class="quiz-option__tick" aria-hidden="true"></span></label>
+                  <label class="quiz-option"><input type="radio" name="coverage" value="$100,000 – $250,000" /><span class="quiz-option__txt"><b>$100,000 – $250,000</b><small>Income replacement</small></span><span class="quiz-option__tick" aria-hidden="true"></span></label>
+                  <label class="quiz-option"><input type="radio" name="coverage" value="$250,000 – $500,000" /><span class="quiz-option__txt"><b>$250,000 – $500,000</b><small>Family &amp; mortgage</small></span><span class="quiz-option__tick" aria-hidden="true"></span></label>
+                  <label class="quiz-option"><input type="radio" name="coverage" value="$500,000 – $1,000,000+" /><span class="quiz-option__txt"><b>$500,000 +</b><small>Full coverage</small></span><span class="quiz-option__tick" aria-hidden="true"></span></label>
+                  <label class="quiz-option"><input type="radio" name="coverage" value="Not sure yet" /><span class="quiz-option__txt"><b>I'm not sure yet</b><small>Help me decide</small></span><span class="quiz-option__tick" aria-hidden="true"></span></label>
+                </div>
+              </fieldset>
+
+              <!-- Step 2: state -->
+              <fieldset class="quiz-step" data-step="2">
+                <legend class="quiz-step__q">What state do you live in?</legend>
+                <p class="quiz-step__hint">Rates and available carriers vary by state.</p>
+                <div class="field">
+                  <label for="state" class="sr-only">State</label>
+                  <select id="state" name="state" required>
+                    <option value="" disabled selected>Select your state</option>
+                  </select>
+                </div>
+              </fieldset>
+
+              <!-- Step 3: age + gender -->
+              <fieldset class="quiz-step" data-step="3">
+                <legend class="quiz-step__q">A little about you</legend>
+                <p class="quiz-step__hint">Age and gender help us match you to the best rate.</p>
+                <div class="field">
+                  <label for="age">Your age</label>
+                  <input type="number" id="age" name="age" min="0" max="120" inputmode="numeric" placeholder="45" required />
+                </div>
+                <div class="field">
+                  <span class="field__label">Gender</span>
+                  <div class="quiz-options quiz-options--row">
+                    <label class="quiz-option quiz-option--compact"><input type="radio" name="gender" value="Female" required /><span class="quiz-option__txt"><b>Female</b></span></label>
+                    <label class="quiz-option quiz-option--compact"><input type="radio" name="gender" value="Male" /><span class="quiz-option__txt"><b>Male</b></span></label>
+                    <label class="quiz-option quiz-option--compact"><input type="radio" name="gender" value="Prefer not to say" /><span class="quiz-option__txt"><b>Prefer not</b></span></label>
+                  </div>
+                </div>
+              </fieldset>
+
+              <!-- Step 4: nicotine -->
+              <fieldset class="quiz-step" data-step="4">
+                <legend class="quiz-step__q">Do you use nicotine?</legend>
+                <p class="quiz-step__hint">Includes cigarettes, vaping, and chewing tobacco.</p>
+                <div class="quiz-options quiz-options--row" data-autoadvance>
+                  <label class="quiz-option quiz-option--big"><input type="radio" name="nicotine" value="no" required /><span class="quiz-option__txt"><b>No</b><small>Non-tobacco rates</small></span><span class="quiz-option__tick" aria-hidden="true"></span></label>
+                  <label class="quiz-option quiz-option--big"><input type="radio" name="nicotine" value="yes" /><span class="quiz-option__txt"><b>Yes</b><small>That's okay!</small></span><span class="quiz-option__tick" aria-hidden="true"></span></label>
+                </div>
+              </fieldset>
+
+              <!-- Step 5: contact -->
+              <fieldset class="quiz-step" data-step="5">
+                <legend class="quiz-step__q">Where should we send your quote?</legend>
+                <p class="quiz-step__hint">Your dedicated agent will reach out with your best options.</p>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="fname">First name</label>
+                    <input type="text" id="fname" name="fname" autocomplete="given-name" placeholder="Jane" required />
+                  </div>
+                  <div class="field">
+                    <label for="lname">Last name</label>
+                    <input type="text" id="lname" name="lname" autocomplete="family-name" placeholder="Doe" required />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="phone">Phone</label>
+                  <input type="tel" id="phone" name="phone" autocomplete="tel" placeholder="(555) 555-5555" required />
+                </div>
+                <div class="field">
+                  <label for="email">Email</label>
+                  <input type="email" id="email" name="email" autocomplete="email" placeholder="jane@email.com" required />
+                </div>
+                <label class="checkbox">
+                  <input type="checkbox" name="agree" required />
+                  <span>I agree to be contacted by YourLifeBroker regarding my quote and accept the privacy policy.</span>
+                </label>
+              </fieldset>
+            </div>
+
+            <div class="quiz__nav">
+              <button type="button" class="quiz__back" id="quizBack" hidden>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                Back
+              </button>
+              <button type="button" class="btn btn--primary quiz__next" id="quizNext" hidden>Continue</button>
+              <button type="submit" class="btn btn--primary btn--lg quiz__submit" id="quizSubmit" hidden>Get My Free Quote</button>
+            </div>
+            <p class="quote-form__note">🔒 Your information is secure and never sold.</p>
+            <p class="quiz__error" id="quizError" role="alert" hidden></p>
+
+            <div class="quote-form__success" id="formSuccess" hidden>
+              <span class="quote-form__check">✓</span>
+              <h3>Thank you!</h3>
+              <p>A licensed YourLifeBroker advisor will reach out shortly with your personalized quote.</p>
+            </div>
+          </form>
+        </div>
       </div>
     </section>
 
@@ -239,7 +345,7 @@
           <div class="plan-aside__card reveal">
             <h3>Ready for your quote?</h3>
             <p>Answer a few quick questions and a licensed agent will find your best rate from 52+ carriers — no obligation.</p>
-            <a href="../index.html#quote" class="btn btn--primary btn--lg">Get My Free Quote</a>
+            <a href="#quote" class="btn btn--primary btn--lg">Get My Free Quote</a>
             <a href="tel:+18105127397" class="btn btn--outline">Call (810) 512-7397</a>
             <p class="plan-updated">Last reviewed June 2026</p>
           </div>
@@ -293,7 +399,7 @@
         <h2 style="color:#fff;font-size:clamp(1.9rem,3.4vw,2.6rem);margin-bottom:16px;">Protecting the life you've built</h2>
         <p style="color:rgba(255,255,255,.86);font-size:1.08rem;margin-bottom:28px;">As your agent, we compare final expense insurance rates from 52+ trusted carriers in minutes. No-medical-exam options, same-day approval, and a real advisor in your corner.</p>
         <div style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;">
-          <a href="../index.html#quote" class="btn btn--gold btn--lg">Get My Free Quote</a>
+          <a href="#quote" class="btn btn--gold btn--lg">Get My Free Quote</a>
           <a href="tel:+18105127397" class="btn btn--outline btn--lg" style="color:#fff;border-color:rgba(255,255,255,.45);">Call (810) 512-7397</a>
         </div>
       </div>
@@ -314,7 +420,7 @@
           <text x="120" y="78" font-family="Archivo, sans-serif" font-size="8" font-weight="600" letter-spacing="2" fill="#8794a8">INSURANCE AGENTS</text>
         </svg>
         <p>Independent life insurance agents. Protecting the life you've built.</p>
-        <a href="../index.html#quote" class="btn btn--gold">Get a Free Quote</a>
+        <a href="#quote" class="btn btn--gold">Get a Free Quote</a>
       </div>
 
       <div class="footer__col">
@@ -358,7 +464,7 @@
   <!-- Sticky mobile CTA -->
   <div class="mobile-cta">
     <a href="tel:+18105127397" class="btn btn--outline btn--block">Call Now</a>
-    <a href="../index.html#quote" class="btn btn--primary btn--block">Free Quote</a>
+    <a href="#quote" class="btn btn--primary btn--block">Free Quote</a>
   </div>
 
   <script src="../js/main.js" defer></script>
