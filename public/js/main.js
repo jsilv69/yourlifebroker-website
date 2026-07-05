@@ -7,7 +7,7 @@
   /* ---- Marketing attribution (UTM params + ad click IDs) ---- */
   // First-touch capture: record params from the first page that has them and
   // persist for the visit, so they ride along with the lead sent to the CRM.
-  const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid"];
+  const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_adgroup", "gclid", "gbraid", "wbraid", "fbclid"];
   const attribution = (function () {
     try {
       const params = new URLSearchParams(window.location.search);

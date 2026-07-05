@@ -35,19 +35,25 @@ const COLS = {
   gender:   process.env.COL_GENDER   || "",
   nicotine: process.env.COL_NICOTINE || "",
   status:   process.env.COL_STATUS   || "",   // a "status" column
-  source:   process.env.COL_SOURCE   || "",   // a text column tagging where the lead came from
-  notes:    process.env.COL_NOTES    || "",   // a long-text column: full answer summary
+  source:   process.env.COL_SOURCE   || "",   // text column: which page/form the lead came from
+  notes:    process.env.COL_NOTES    || "",   // long-text column: full answer summary
+  // Marketing attribution → dedicated text columns
+  clid:        process.env.COL_CLID         || "",  // Google click id (gclid)
+  utmSource:   process.env.COL_UTM_SOURCE   || "",
+  utmCampaign: process.env.COL_UTM_CAMPAIGN || "",
+  utmAdGroup:  process.env.COL_UTM_ADGROUP  || "",
+  utmKeyword:  process.env.COL_UTM_KEYWORD  || "",
 };
 const STATUS_LABEL = process.env.MONDAY_STATUS_LABEL || "New Lead";
 const LEAD_SOURCE = process.env.LEAD_SOURCE || "Website Quote Form";
 
 // Marketing attribution passed from the form (UTM params + ad click IDs).
-const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "gclid", "gbraid", "wbraid", "fbclid"];
+const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_adgroup", "gclid", "gbraid", "wbraid", "fbclid"];
 
 // Human-readable summary of every answer — handy when the board lacks a column per field.
-const buildNotes = (lead, attr = {}) => {
+const buildNotes = (lead, attr = {}, source = LEAD_SOURCE) => {
   const lines = [
-    `Source: ${LEAD_SOURCE}`,
+    `Source: ${source}`,
     `Coverage: ${lead.coverage || "—"}`,
     `State: ${lead.state || "—"}`,
     `Age: ${lead.age || "—"}`,
@@ -122,8 +128,18 @@ app.post("/api/lead", async (req, res) => {
     if (COLS.nicotine && lead.nicotine) columnValues[COLS.nicotine] = lead.nicotine;
     if (COLS.age && lead.age)           columnValues[COLS.age]      = Number(lead.age) || 0;
     if (COLS.status)              columnValues[COLS.status]   = { label: STATUS_LABEL };
-    if (COLS.source)              columnValues[COLS.source]   = LEAD_SOURCE;
-    if (COLS.notes)               columnValues[COLS.notes]    = { text: buildNotes(lead, attr) };
+    // Lead Source = the per-page form name (e.g. "Final Expense Form"), else default.
+    const leadSource = clean(b.lead_source) || LEAD_SOURCE;
+    if (COLS.source)              columnValues[COLS.source]   = leadSource;
+    if (COLS.notes)               columnValues[COLS.notes]    = { text: buildNotes(lead, attr, leadSource) };
+
+    // Marketing attribution → dedicated CRM text columns.
+    const clid = attr.gclid || attr.gbraid || attr.wbraid || "";
+    if (COLS.clid && clid)                       columnValues[COLS.clid]        = clid;
+    if (COLS.utmSource && attr.utm_source)       columnValues[COLS.utmSource]   = attr.utm_source;
+    if (COLS.utmCampaign && attr.utm_campaign)   columnValues[COLS.utmCampaign] = attr.utm_campaign;
+    if (COLS.utmAdGroup && (attr.utm_adgroup || attr.utm_content)) columnValues[COLS.utmAdGroup] = attr.utm_adgroup || attr.utm_content;
+    if (COLS.utmKeyword && attr.utm_term)        columnValues[COLS.utmKeyword]  = attr.utm_term;
 
     const query = `
       mutation ($board: ID!, $group: String, $name: String!, $cols: JSON!) {
