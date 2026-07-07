@@ -5,12 +5,14 @@
 // The Monday API token lives ONLY in server env (Fly secret).
 // =============================================================
 import express from "express";
+import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(express.json({ limit: "16kb" }));
+// Keep the raw body so we can verify Meta's X-Hub-Signature-256.
+app.use(express.json({ limit: "1mb", verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
 const {
   MONDAY_TOKEN,
@@ -46,6 +48,16 @@ const COLS = {
 };
 const STATUS_LABEL = process.env.MONDAY_STATUS_LABEL || "New Lead";
 const LEAD_SOURCE = process.env.LEAD_SOURCE || "Website Quote Form";
+
+// --- Meta Lead Ads (Instant Forms) webhook config ---
+const {
+  META_APP_SECRET,     // for verifying X-Hub-Signature-256
+  META_PAGE_TOKEN,     // System User / Page token with leads_retrieval
+  META_VERIFY_TOKEN,   // string you set here + in the Meta webhook config
+  META_GRAPH_VERSION = "v21.0",
+  META_GRAPH_BASE = "https://graph.facebook.com", // overridable for testing
+} = process.env;
+const META_LEAD_SOURCE = process.env.META_LEAD_SOURCE || "Meta Instant Form";
 
 // Marketing attribution passed from the form (UTM params + ad click IDs).
 const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_adgroup", "gclid", "gbraid", "wbraid", "fbclid"];
@@ -87,6 +99,31 @@ app.use((req, res, next) => {
 });
 
 const clean = (v) => (v == null ? "" : String(v).trim());
+
+// Create one item (lead) on the Monday board. Returns { ok, id } or { ok:false, data }.
+async function mondayCreateItem(itemName, columnValues) {
+  const query = `
+    mutation ($board: ID!, $group: String, $name: String!, $cols: JSON!) {
+      create_item (board_id: $board, group_id: $group, item_name: $name, column_values: $cols) { id }
+    }`;
+  const variables = {
+    board: String(MONDAY_BOARD_ID),
+    group: MONDAY_GROUP_ID || null,
+    name: itemName,
+    cols: JSON.stringify(columnValues),
+  };
+  const headers = { "Content-Type": "application/json", Authorization: MONDAY_TOKEN };
+  if (MONDAY_API_VERSION) headers["API-Version"] = MONDAY_API_VERSION;
+
+  const r = await fetch(MONDAY_API_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ query, variables }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.errors || data.error_message) return { ok: false, data };
+  return { ok: true, id: data?.data?.create_item?.id || null };
+}
 
 app.post("/api/lead", async (req, res) => {
   try {
@@ -141,39 +178,138 @@ app.post("/api/lead", async (req, res) => {
     if (COLS.utmAdGroup && (attr.utm_adgroup || attr.utm_content)) columnValues[COLS.utmAdGroup] = attr.utm_adgroup || attr.utm_content;
     if (COLS.utmKeyword && attr.utm_term)        columnValues[COLS.utmKeyword]  = attr.utm_term;
 
-    const query = `
-      mutation ($board: ID!, $group: String, $name: String!, $cols: JSON!) {
-        create_item (board_id: $board, group_id: $group, item_name: $name, column_values: $cols) { id }
-      }`;
-    const variables = {
-      board: String(MONDAY_BOARD_ID),
-      group: MONDAY_GROUP_ID || null,
-      name: `${lead.fname} ${lead.lname}`.trim(),
-      cols: JSON.stringify(columnValues),
-    };
-
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: MONDAY_TOKEN,
-    };
-    if (MONDAY_API_VERSION) headers["API-Version"] = MONDAY_API_VERSION;
-
-    const r = await fetch(MONDAY_API_URL, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ query, variables }),
-    });
-    const data = await r.json().catch(() => ({}));
-
-    if (!r.ok || data.errors || data.error_message) {
-      console.error("Monday API error:", JSON.stringify(data));
+    const result = await mondayCreateItem(`${lead.fname} ${lead.lname}`.trim(), columnValues);
+    if (!result.ok) {
+      console.error("Monday API error:", JSON.stringify(result.data));
       return res.status(502).json({ ok: false, error: "Could not save your request — please call us." });
     }
-
-    return res.json({ ok: true, id: data?.data?.create_item?.id || null });
+    return res.json({ ok: true, id: result.id });
   } catch (err) {
     console.error("Lead handler error:", err);
     return res.status(500).json({ ok: false, error: "Unexpected error — please try again." });
+  }
+});
+
+// =============================================================
+// Meta Lead Ads (Instant Forms) → Monday
+// Meta sends a `leadgen` webhook with a leadgen_id; we fetch the
+// lead from the Graph API and create a Monday item.
+// =============================================================
+
+// 1) Verification handshake (Meta GET with hub.challenge).
+app.get("/webhooks/meta", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+  if (mode === "subscribe" && META_VERIFY_TOKEN && token === META_VERIFY_TOKEN) {
+    return res.status(200).send(String(challenge ?? ""));
+  }
+  return res.sendStatus(403);
+});
+
+// Verify the request really came from Meta (HMAC-SHA256 of the raw body).
+function verifyMetaSignature(req) {
+  if (!META_APP_SECRET) return false;
+  const sig = req.get("x-hub-signature-256") || "";
+  const expected = "sha256=" + crypto.createHmac("sha256", META_APP_SECRET).update(req.rawBody || Buffer.alloc(0)).digest("hex");
+  const a = Buffer.from(sig), b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// Fetch one lead's field data from the Graph API.
+async function fetchMetaLead(leadgenId) {
+  const fields = "id,created_time,field_data,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name,form_id,platform,is_organic";
+  const url = `${META_GRAPH_BASE}/${META_GRAPH_VERSION}/${encodeURIComponent(leadgenId)}`
+    + `?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(META_PAGE_TOKEN || "")}`;
+  const r = await fetch(url);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.error) throw new Error("Graph API error: " + JSON.stringify(data.error || data));
+  return data;
+}
+
+// Normalise Meta's field_data array into common fields + a flat map.
+function parseFieldData(fieldData = []) {
+  const map = {};
+  for (const f of fieldData) map[f.name] = Array.isArray(f.values) ? f.values.join(", ") : "";
+  const email = map.email || map.email_address || "";
+  const phone = (map.phone_number || map.phone || map.work_phone_number || "").replace(/\D/g, "").replace(/^1(\d{10})$/, "$1");
+  let first = map.first_name || "", last = map.last_name || "";
+  let full = map.full_name || map.name || "";
+  if (!full && (first || last)) full = `${first} ${last}`.trim();
+  if (full && !first && !last) { const p = full.split(/\s+/); first = p.shift() || ""; last = p.join(" "); }
+  return { map, email, phone, first, last, full };
+}
+
+// In-process idempotency so Meta retries don't double-create (best effort).
+const seenMetaLeads = new Set();
+
+async function processMetaLead(leadgenId) {
+  if (seenMetaLeads.has(leadgenId)) { console.log("Meta lead already processed:", leadgenId); return; }
+  const lead = await fetchMetaLead(leadgenId);
+  const p = parseFieldData(lead.field_data);
+
+  const columnValues = {};
+  if (COLS.email && p.email) columnValues[COLS.email] = { email: p.email, text: p.email };
+  if (COLS.phone && p.phone) columnValues[COLS.phone] = { phone: p.phone, countryShortName: "US" };
+  if (COLS.status)           columnValues[COLS.status] = { label: STATUS_LABEL };
+  if (COLS.source)           columnValues[COLS.source] = META_LEAD_SOURCE;
+  // Meta ad hierarchy → attribution columns (parity with the web form's UTM columns).
+  if (COLS.utmSource)                        columnValues[COLS.utmSource]   = "meta";
+  if (COLS.utmCampaign && lead.campaign_name) columnValues[COLS.utmCampaign] = lead.campaign_name;
+  if (COLS.utmAdGroup && lead.adset_name)     columnValues[COLS.utmAdGroup]  = lead.adset_name;
+  if (COLS.utmKeyword && lead.ad_name)        columnValues[COLS.utmKeyword]  = lead.ad_name;
+  // Notes: every answer (incl. custom questions) + Meta IDs for traceability.
+  if (COLS.notes) {
+    const lines = [`Source: ${META_LEAD_SOURCE}`];
+    for (const [k, v] of Object.entries(p.map)) lines.push(`${k}: ${v}`);
+    lines.push("", "Meta:",
+      `form_id: ${lead.form_id || "—"}`,
+      `campaign: ${lead.campaign_name || "—"}`,
+      `ad set: ${lead.adset_name || "—"}`,
+      `ad: ${lead.ad_name || "—"}`,
+      `platform: ${lead.platform || "—"}`,
+      `leadgen_id: ${leadgenId}`,
+      `created: ${lead.created_time || "—"}`);
+    columnValues[COLS.notes] = { text: lines.join("\n") };
+  }
+
+  const itemName = p.full || p.email || `Meta Lead ${leadgenId}`;
+  const result = await mondayCreateItem(itemName, columnValues);
+  if (!result.ok) throw new Error("Monday create failed: " + JSON.stringify(result.data));
+  seenMetaLeads.add(leadgenId);
+  console.log("Meta lead created in Monday:", { leadgenId, monday_item_id: result.id, name: itemName });
+}
+
+// 2) Receive leadgen events.
+app.post("/webhooks/meta", async (req, res) => {
+  if (!verifyMetaSignature(req)) {
+    console.warn("Meta webhook: bad or missing signature");
+    return res.sendStatus(403);
+  }
+  const body = req.body || {};
+  if (body.object !== "page") return res.sendStatus(200);
+
+  const ids = [];
+  for (const entry of body.entry || []) {
+    for (const change of entry.changes || []) {
+      if (change.field === "leadgen" && change.value && change.value.leadgen_id) {
+        ids.push(String(change.value.leadgen_id));
+      }
+    }
+  }
+  if (!ids.length) return res.sendStatus(200);
+
+  if (!MONDAY_TOKEN || !MONDAY_BOARD_ID || !META_PAGE_TOKEN) {
+    console.error("Meta webhook: not fully configured (Monday or Meta token missing)");
+    return res.sendStatus(500); // 5xx → Meta will retry once configured
+  }
+
+  try {
+    for (const id of ids) await processMetaLead(id);
+    return res.sendStatus(200);
+  } catch (err) {
+    console.error("Meta webhook processing error:", err?.message || err);
+    return res.sendStatus(500); // let Meta retry transient failures
   }
 });
 
