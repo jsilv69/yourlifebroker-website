@@ -24,6 +24,47 @@
     }
   })();
 
+  /* ---- Dynamic number insertion (swap the phone number by ad campaign) ---- */
+  // Map a utm_campaign to a call-tracking number. Add more entries as needed.
+  const PHONE_BY_CAMPAIGN = {
+    "whole_life_buyers_1": { tel: "+18104765017", display: "(810) 476-5017" },
+  };
+  (function applyDNI() {
+    const DEFAULT_TEL = "+18105127397";
+    const DEFAULT_DISPLAY = "(810) 512-7397";
+    // Resolve the campaign: current URL first, then a sticky flag, then first-touch attribution,
+    // so the swapped number persists across the whole visit (even on pages without the UTM).
+    let campaign = new URLSearchParams(window.location.search).get("utm_campaign");
+    try { campaign = campaign || sessionStorage.getItem("ylb_dni_campaign"); } catch (e) {}
+    campaign = String(campaign || attribution.utm_campaign || "").toLowerCase();
+
+    const swap = PHONE_BY_CAMPAIGN[campaign];
+    if (!swap) return;
+    try { sessionStorage.setItem("ylb_dni_campaign", campaign); } catch (e) {}
+
+    const run = () => {
+      // 1) Update tel: links.
+      document.querySelectorAll('a[href="tel:' + DEFAULT_TEL + '"]').forEach((a) => {
+        a.href = "tel:" + swap.tel;
+      });
+      // 2) Update the visible number in text (skip <script>/<style>; leaves JSON-LD alone).
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          const name = node.parentNode && node.parentNode.nodeName;
+          if (name === "SCRIPT" || name === "STYLE") return NodeFilter.FILTER_REJECT;
+          return node.nodeValue.indexOf(DEFAULT_DISPLAY) !== -1
+            ? NodeFilter.FILTER_ACCEPT
+            : NodeFilter.FILTER_REJECT;
+        },
+      });
+      const hits = [];
+      while (walker.nextNode()) hits.push(walker.currentNode);
+      hits.forEach((n) => { n.nodeValue = n.nodeValue.split(DEFAULT_DISPLAY).join(swap.display); });
+    };
+    if (document.body) run();
+    else document.addEventListener("DOMContentLoaded", run);
+  })();
+
   /* ---- Header shadow on scroll ---- */
   const header = document.getElementById("header");
   const onScroll = () => header.classList.toggle("is-stuck", window.scrollY > 8);
