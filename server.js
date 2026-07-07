@@ -102,8 +102,12 @@ app.use((req, res, next) => {
 
 const clean = (v) => (v == null ? "" : String(v).trim());
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 // Create one item (lead) on the Monday board. Returns { ok, id } or { ok:false, data }.
-async function mondayCreateItem(itemName, columnValues) {
+// Retries transient Monday errors (500 / DOWNSTREAM_SERVICE_ERROR / rate limits) with backoff;
+// deterministic errors (e.g. ColumnValueException) fail fast.
+async function mondayCreateItem(itemName, columnValues, { retries = 3 } = {}) {
   const query = `
     mutation ($board: ID!, $group: String, $name: String!, $cols: JSON!) {
       create_item (board_id: $board, group_id: $group, item_name: $name, column_values: $cols) { id }
@@ -117,14 +121,27 @@ async function mondayCreateItem(itemName, columnValues) {
   const headers = { "Content-Type": "application/json", Authorization: MONDAY_TOKEN };
   if (MONDAY_API_VERSION) headers["API-Version"] = MONDAY_API_VERSION;
 
-  const r = await fetch(MONDAY_API_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ query, variables }),
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok || data.errors || data.error_message) return { ok: false, data };
-  return { ok: true, id: data?.data?.create_item?.id || null };
+  let last = { ok: false, data: {} };
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt) await sleep(Math.min(4000, 400 * 2 ** (attempt - 1)));
+    let r, data;
+    try {
+      r = await fetch(MONDAY_API_URL, { method: "POST", headers, body: JSON.stringify({ query, variables }) });
+      data = await r.json().catch(() => ({}));
+    } catch (e) {
+      last = { ok: false, data: { error: String(e) } };
+      continue; // network error → retry
+    }
+    if (r.ok && !data.errors && !data.error_message) {
+      if (attempt) console.log(`Monday create succeeded on retry #${attempt}`);
+      return { ok: true, id: data?.data?.create_item?.id || null };
+    }
+    last = { ok: false, data };
+    const transient = !r.ok || /INTERNAL_SERVER_ERROR|DOWNSTREAM_SERVICE_ERROR|complexity|rate.?limit|timeout|ETIMEDOUT|502|503|504/i.test(JSON.stringify(data));
+    if (!transient) break; // don't retry a real/deterministic rejection
+    console.warn(`Monday create transient error (attempt ${attempt + 1}/${retries + 1}), retrying…`);
+  }
+  return last;
 }
 
 app.post("/api/lead", async (req, res) => {
