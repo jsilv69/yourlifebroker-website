@@ -38,6 +38,7 @@ const COLS = {
   nicotine: process.env.COL_NICOTINE || "",
   status:   process.env.COL_STATUS   || "",   // a "status" column
   source:   process.env.COL_SOURCE   || "",   // text column: which page/form the lead came from
+  sourceGroup: process.env.COL_SOURCE_GROUP || "", // status column: channel bucket (e.g. "Meta Ads")
   notes:    process.env.COL_NOTES    || "",   // long-text column: full answer summary
   // Marketing attribution → dedicated text columns
   clid:        process.env.COL_CLID         || "",  // Google click id (gclid)
@@ -58,6 +59,7 @@ const {
   META_GRAPH_BASE = "https://graph.facebook.com", // overridable for testing
 } = process.env;
 const META_LEAD_SOURCE = process.env.META_LEAD_SOURCE || "Meta Instant Form";
+const META_SOURCE_GROUP = process.env.META_SOURCE_GROUP || "Meta Ads"; // Lead Source Group status label
 
 // Marketing attribution passed from the form (UTM params + ad click IDs).
 const ATTR_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_adgroup", "gclid", "gbraid", "wbraid", "fbclid"];
@@ -248,19 +250,25 @@ async function processMetaLead(leadgenId) {
   const lead = await fetchMetaLead(leadgenId);
   const p = parseFieldData(lead.field_data);
 
+  // Lead Source (text) = the Meta campaign name; falls back to a generic label for
+  // organic leads with no campaign. Lead Source Group (status) buckets it as "Meta Ads".
+  const campaign = lead.campaign_name || "";
+  const leadSourceValue = campaign || META_LEAD_SOURCE;
+
   const columnValues = {};
   if (COLS.email && p.email) columnValues[COLS.email] = { email: p.email, text: p.email };
   if (COLS.phone && p.phone) columnValues[COLS.phone] = { phone: p.phone, countryShortName: "US" };
   if (COLS.status)           columnValues[COLS.status] = { label: STATUS_LABEL };
-  if (COLS.source)           columnValues[COLS.source] = META_LEAD_SOURCE;
+  if (COLS.source)           columnValues[COLS.source] = leadSourceValue;
+  if (COLS.sourceGroup)      columnValues[COLS.sourceGroup] = { label: META_SOURCE_GROUP };
   // Meta ad hierarchy → attribution columns (parity with the web form's UTM columns).
   if (COLS.utmSource)                        columnValues[COLS.utmSource]   = "meta";
-  if (COLS.utmCampaign && lead.campaign_name) columnValues[COLS.utmCampaign] = lead.campaign_name;
+  if (COLS.utmCampaign && campaign)          columnValues[COLS.utmCampaign] = campaign;
   if (COLS.utmAdGroup && lead.adset_name)     columnValues[COLS.utmAdGroup]  = lead.adset_name;
   if (COLS.utmKeyword && lead.ad_name)        columnValues[COLS.utmKeyword]  = lead.ad_name;
   // Notes: every answer (incl. custom questions) + Meta IDs for traceability.
   if (COLS.notes) {
-    const lines = [`Source: ${META_LEAD_SOURCE}`];
+    const lines = [`Source: ${leadSourceValue}`, `Lead Source Group: ${META_SOURCE_GROUP}`];
     for (const [k, v] of Object.entries(p.map)) lines.push(`${k}: ${v}`);
     lines.push("", "Meta:",
       `form_id: ${lead.form_id || "—"}`,
