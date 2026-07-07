@@ -501,6 +501,21 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .prose p { margin-bottom: 16px; }
 .prose p:last-child { margin-bottom: 0; }
 .prose strong { color: var(--ink); }
+
+/* Legal / utility pages (Privacy, Terms) */
+.legal { padding: clamp(40px, 6vw, 84px) 0; }
+.legal__inner { max-width: 820px; margin-inline: auto; }
+.legal__crumb { font-size: 13.5px; margin-bottom: 14px; }
+.legal__crumb a { color: var(--navy-700); font-weight: 600; }
+.legal__crumb a:hover { color: var(--gold-500); }
+.legal h1 { font-size: clamp(2rem, 4vw, 2.8rem); margin-bottom: 8px; }
+.legal__updated { color: var(--muted); font-size: .95rem; margin-bottom: 32px; }
+.legal .prose h2 { margin-top: 38px; }
+.legal .prose ul { margin: 0 0 16px; padding-left: 22px; list-style: disc; }
+.legal .prose li { margin-bottom: 8px; }
+.legal .prose a { color: var(--navy-700); font-weight: 600; text-decoration: underline; }
+.footer__legal a { color: rgba(255,255,255,.72); }
+.footer__legal a:hover { color: var(--gold-500); }
 .prose .checks { display: grid; gap: 12px; margin: 6px 0 22px; }
 .prose .checks li { display: flex; align-items: flex-start; gap: 11px; color: var(--body); }
 .prose .checks li::before { content: "✓"; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: var(--navy-100); color: var(--navy-700); border-radius: 50%; font-size: 13px; font-weight: 800; flex: none; margin-top: 1px; }
