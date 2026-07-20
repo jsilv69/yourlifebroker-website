@@ -49,6 +49,9 @@ const COLS = {
 };
 const STATUS_LABEL = process.env.MONDAY_STATUS_LABEL || "New Lead";
 const LEAD_SOURCE = process.env.LEAD_SOURCE || "Website Quote Form";
+// Lead Source Group (status column) labels for web-form leads.
+const WEB_SOURCE_GROUP_GOOGLE = process.env.WEB_SOURCE_GROUP_GOOGLE || "Google Ads";
+const WEB_SOURCE_GROUP_DEFAULT = process.env.WEB_SOURCE_GROUP_DEFAULT || "Website";
 
 // --- Meta Lead Ads (Instant Forms) webhook config ---
 const {
@@ -110,7 +113,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function mondayCreateItem(itemName, columnValues, { retries = 3 } = {}) {
   const query = `
     mutation ($board: ID!, $group: String, $name: String!, $cols: JSON!) {
-      create_item (board_id: $board, group_id: $group, item_name: $name, column_values: $cols) { id }
+      create_item (board_id: $board, group_id: $group, item_name: $name, column_values: $cols, create_labels_if_missing: true) { id }
     }`;
   const variables = {
     board: String(MONDAY_BOARD_ID),
@@ -184,9 +187,16 @@ app.post("/api/lead", async (req, res) => {
     if (COLS.nicotine && lead.nicotine) columnValues[COLS.nicotine] = lead.nicotine;
     if (COLS.age && lead.age)           columnValues[COLS.age]      = Number(lead.age) || 0;
     if (COLS.status)              columnValues[COLS.status]   = { label: STATUS_LABEL };
-    // Lead Source = the per-page form name (e.g. "Final Expense Form"), else default.
-    const leadSource = clean(b.lead_source) || LEAD_SOURCE;
+    // Lead Source = the ad campaign name when the click carried one, else the per-page form name.
+    const campaign = clean(attr.utm_campaign);
+    const leadSource = campaign || clean(b.lead_source) || LEAD_SOURCE;
     if (COLS.source)              columnValues[COLS.source]   = leadSource;
+    // Lead Source Group = "Google Ads" for Google-ad clicks (a click ID, or utm_source=google),
+    // else "Website". Bucketing on the Google signal (not just any utm_campaign) so a non-Google
+    // campaign hitting the site isn't mislabeled.
+    const isGoogleClick = Boolean(attr.gclid || attr.gbraid || attr.wbraid)
+      || String(attr.utm_source || "").toLowerCase() === "google";
+    if (COLS.sourceGroup)         columnValues[COLS.sourceGroup] = { label: isGoogleClick ? WEB_SOURCE_GROUP_GOOGLE : WEB_SOURCE_GROUP_DEFAULT };
     if (COLS.notes)               columnValues[COLS.notes]    = { text: buildNotes(lead, attr, leadSource) };
 
     // Marketing attribution → dedicated CRM text columns.
@@ -300,7 +310,12 @@ async function processMetaLead(leadgenId) {
 
   const itemName = p.full || p.email || `Meta Lead ${leadgenId}`;
   const result = await mondayCreateItem(itemName, columnValues);
-  if (!result.ok) throw new Error("Monday create failed: " + JSON.stringify(result.data));
+  if (!result.ok) {
+    console.error("Meta→Monday create FAILED. item=" + JSON.stringify(itemName)
+      + " cols=" + JSON.stringify(columnValues)
+      + " resp=" + JSON.stringify(result.data));
+    throw new Error("Monday create failed");
+  }
   seenMetaLeads.add(leadgenId);
   console.log("Meta lead created in Monday:", { leadgenId, monday_item_id: result.id, name: itemName });
 }
