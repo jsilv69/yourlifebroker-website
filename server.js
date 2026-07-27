@@ -49,9 +49,10 @@ const COLS = {
 };
 const STATUS_LABEL = process.env.MONDAY_STATUS_LABEL || "New Lead";
 const LEAD_SOURCE = process.env.LEAD_SOURCE || "Website Quote Form";
-// Lead Source Group (status column) labels for web-form leads.
-const WEB_SOURCE_GROUP_GOOGLE = process.env.WEB_SOURCE_GROUP_GOOGLE || "Google Ads";
-const WEB_SOURCE_GROUP_DEFAULT = process.env.WEB_SOURCE_GROUP_DEFAULT || "Website";
+// Lead Source Group (status column) for web-form leads. Every quote-form
+// submission is bucketed as "Website Form" — this distinguishes form leads from
+// phone leads; paid attribution lives in Lead Source (campaign name) + the UTM columns.
+const WEB_SOURCE_GROUP = process.env.WEB_SOURCE_GROUP || "Website Form";
 
 // --- Meta Lead Ads (Instant Forms) webhook config ---
 const {
@@ -191,12 +192,8 @@ app.post("/api/lead", async (req, res) => {
     const campaign = clean(attr.utm_campaign);
     const leadSource = campaign || clean(b.lead_source) || LEAD_SOURCE;
     if (COLS.source)              columnValues[COLS.source]   = leadSource;
-    // Lead Source Group = "Google Ads" for Google-ad clicks (a click ID, or utm_source=google),
-    // else "Website". Bucketing on the Google signal (not just any utm_campaign) so a non-Google
-    // campaign hitting the site isn't mislabeled.
-    const isGoogleClick = Boolean(attr.gclid || attr.gbraid || attr.wbraid)
-      || String(attr.utm_source || "").toLowerCase() === "google";
-    if (COLS.sourceGroup)         columnValues[COLS.sourceGroup] = { label: isGoogleClick ? WEB_SOURCE_GROUP_GOOGLE : WEB_SOURCE_GROUP_DEFAULT };
+    // Lead Source Group = "Website Form" for every quote-form submission.
+    if (COLS.sourceGroup)         columnValues[COLS.sourceGroup] = { label: WEB_SOURCE_GROUP };
     if (COLS.notes)               columnValues[COLS.notes]    = { text: buildNotes(lead, attr, leadSource) };
 
     // Marketing attribution → dedicated CRM text columns.
