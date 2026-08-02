@@ -62,6 +62,38 @@ const {
   META_GRAPH_VERSION = "v21.0",
   META_GRAPH_BASE = "https://graph.facebook.com", // overridable for testing
 } = process.env;
+
+// Ad URLs sometimes pass the numeric Meta campaign ID as utm_campaign (e.g. {{campaign.id}}),
+// so leads can land with a bare number as their "campaign". Resolve that ID to the real
+// campaign name via the Graph API. Cached in-process; best-effort with a short timeout so it
+// never blocks or fails a lead. Empty results are cached too (e.g. Google IDs the Graph API
+// can't resolve) to avoid re-hitting them.
+const metaCampaignNameCache = new Map();
+async function resolveMetaCampaignName(campaignId) {
+  const id = String(campaignId || "").trim();
+  if (!/^\d+$/.test(id) || !META_PAGE_TOKEN) return "";
+  if (metaCampaignNameCache.has(id)) return metaCampaignNameCache.get(id);
+  const url = `${META_GRAPH_BASE}/${META_GRAPH_VERSION}/${encodeURIComponent(id)}`
+    + `?fields=name&access_token=${encodeURIComponent(META_PAGE_TOKEN)}`;
+  let name = "";
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 3000);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d && d.name) name = String(d.name);
+  } catch { /* best-effort — leave name empty */ }
+  metaCampaignNameCache.set(id, name);
+  return name;
+}
+
+// Only try to resolve Meta campaign IDs for Meta-sourced traffic (an/fb/ig/audience network),
+// so a numeric Google campaign ID doesn't cause a pointless Graph call that 400s.
+const META_TRAFFIC_SOURCES = new Set(["an", "meta", "fb", "facebook", "ig", "instagram", "msg", "audiencenetwork"]);
+function looksMetaTraffic(attr = {}) {
+  return Boolean(attr.fbclid) || META_TRAFFIC_SOURCES.has(String(attr.utm_source || "").toLowerCase());
+}
 const META_LEAD_SOURCE = process.env.META_LEAD_SOURCE || "Meta Instant Form";
 const META_SOURCE_GROUP = process.env.META_SOURCE_GROUP || "Meta Ads"; // Lead Source Group status label
 
@@ -189,7 +221,12 @@ app.post("/api/lead", async (req, res) => {
     if (COLS.age && lead.age)           columnValues[COLS.age]      = Number(lead.age) || 0;
     if (COLS.status)              columnValues[COLS.status]   = { label: STATUS_LABEL };
     // Lead Source = the ad campaign name when the click carried one, else the per-page form name.
-    const campaign = clean(attr.utm_campaign);
+    let campaign = clean(attr.utm_campaign);
+    // If the ad passed a bare numeric Meta campaign ID, resolve it to the real campaign name.
+    if (/^\d+$/.test(campaign) && looksMetaTraffic(attr)) {
+      const name = await resolveMetaCampaignName(campaign);
+      if (name) campaign = name;
+    }
     const leadSource = campaign || clean(b.lead_source) || LEAD_SOURCE;
     if (COLS.source)              columnValues[COLS.source]   = leadSource;
     // Lead Source Group = "Website Form" for every quote-form submission.
@@ -276,7 +313,12 @@ async function processMetaLead(leadgenId) {
 
   // Lead Source (text) = the Meta campaign name; falls back to a generic label for
   // organic leads with no campaign. Lead Source Group (status) buckets it as "Meta Ads".
-  const campaign = lead.campaign_name || "";
+  let campaign = lead.campaign_name || "";
+  // If Meta returned the campaign ID (or nothing) instead of a readable name, resolve it.
+  if ((!campaign || /^\d+$/.test(campaign)) && lead.campaign_id) {
+    const name = await resolveMetaCampaignName(lead.campaign_id);
+    if (name) campaign = name;
+  }
   const leadSourceValue = campaign || META_LEAD_SOURCE;
 
   const columnValues = {};
