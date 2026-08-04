@@ -94,6 +94,23 @@ const META_TRAFFIC_SOURCES = new Set(["an", "meta", "fb", "facebook", "ig", "ins
 function looksMetaTraffic(attr = {}) {
   return Boolean(attr.fbclid) || META_TRAFFIC_SOURCES.has(String(attr.utm_source || "").toLowerCase());
 }
+
+// Google's ad URLs pass {campaignid} (a bare number) as utm_campaign and there's no lightweight
+// name lookup like Meta's, so we map known campaign IDs to readable names here. Add new campaigns
+// to this list, or override/extend without a deploy via the GOOGLE_CAMPAIGN_NAMES env var (JSON).
+const GOOGLE_CAMPAIGN_NAMES = {
+  "24069673439": "Video Efficient reach - 2026-07-26",
+  "23965953543": "Customer Service 1",
+  "23965944477": "FEX Buyers 1",
+  "24004738509": "Whole Life - Search",
+  "24078790730": "Customer Service - Priority Carriers",
+  "24014276785": "Video Non-skippable - 2026-07-07",
+  "23964148947": "Zeta XXX",
+  "24004736085": "Mortgage Protection - Search",
+};
+try {
+  if (process.env.GOOGLE_CAMPAIGN_NAMES) Object.assign(GOOGLE_CAMPAIGN_NAMES, JSON.parse(process.env.GOOGLE_CAMPAIGN_NAMES));
+} catch { console.warn("GOOGLE_CAMPAIGN_NAMES env is not valid JSON — ignoring"); }
 const META_LEAD_SOURCE = process.env.META_LEAD_SOURCE || "Meta Instant Form";
 const META_SOURCE_GROUP = process.env.META_SOURCE_GROUP || "Meta Ads"; // Lead Source Group status label
 
@@ -222,10 +239,14 @@ app.post("/api/lead", async (req, res) => {
     if (COLS.status)              columnValues[COLS.status]   = { label: STATUS_LABEL };
     // Lead Source = the ad campaign name when the click carried one, else the per-page form name.
     let campaign = clean(attr.utm_campaign);
-    // If the ad passed a bare numeric Meta campaign ID, resolve it to the real campaign name.
-    if (/^\d+$/.test(campaign) && looksMetaTraffic(attr)) {
-      const name = await resolveMetaCampaignName(campaign);
-      if (name) campaign = name;
+    if (/^\d+$/.test(campaign)) {
+      // Meta traffic: resolve the numeric campaign ID to its name via the Graph API.
+      if (looksMetaTraffic(attr)) {
+        const name = await resolveMetaCampaignName(campaign);
+        if (name) campaign = name;
+      }
+      // Still numeric (e.g. Google): map the known campaign ID to a readable name.
+      if (/^\d+$/.test(campaign) && GOOGLE_CAMPAIGN_NAMES[campaign]) campaign = GOOGLE_CAMPAIGN_NAMES[campaign];
     }
     const leadSource = campaign || clean(b.lead_source) || LEAD_SOURCE;
     if (COLS.source)              columnValues[COLS.source]   = leadSource;
