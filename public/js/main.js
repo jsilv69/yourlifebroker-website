@@ -25,9 +25,12 @@
   })();
 
   /* ---- Dynamic number insertion (swap the phone number by ad campaign) ---- */
-  // Map a utm_campaign to a call-tracking number. Add more entries as needed.
+  // Map a utm_campaign (Google campaign ID) to the call-tracking number to display.
   const PHONE_BY_CAMPAIGN = {
-    "whole_life_buyers_1": { tel: "+18104765017", display: "(810) 476-5017" },
+    "23965944477": { tel: "+18104765017", display: "(810) 476-5017" }, // FEX Buyers 1
+    "24004738509": { tel: "+18102062134", display: "(810) 206-2134" }, // Whole Life - Search
+    "24078790730": { tel: "+18105355004", display: "(810) 535-5004" }, // Customer Service - Priority Carriers
+    "23965953543": { tel: "+18105127409", display: "(810) 512-7409" }, // Customer Service 1
   };
   (function applyDNI() {
     const DEFAULT_TEL = "+18105127397";
