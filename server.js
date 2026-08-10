@@ -49,10 +49,18 @@ const COLS = {
 };
 const STATUS_LABEL = process.env.MONDAY_STATUS_LABEL || "New Lead";
 const LEAD_SOURCE = process.env.LEAD_SOURCE || "Website Quote Form";
-// Lead Source Group (status column) for web-form leads. Every quote-form
-// submission is bucketed as "Website Form" — this distinguishes form leads from
-// phone leads; paid attribution lives in Lead Source (campaign name) + the UTM columns.
-const WEB_SOURCE_GROUP = process.env.WEB_SOURCE_GROUP || "Website Form";
+// Lead Source Group (status column) for web-form leads, chosen from the ad campaign ID
+// the visit carried. Known campaigns map to a specific group; a submission with no
+// campaign (or an unmapped one) falls back to the default. Extend/override the map
+// without a deploy via WEB_FORM_CAMPAIGN_GROUPS (JSON: {"<campaignId>":"Group"}).
+const WEB_SOURCE_GROUP_DEFAULT = process.env.WEB_SOURCE_GROUP_DEFAULT || "Direct Web Form";
+const WEB_FORM_CAMPAIGN_GROUPS = {
+  "23965944477": "FEX Google Form",
+  "24004738509": "WL Google Form",
+};
+try {
+  if (process.env.WEB_FORM_CAMPAIGN_GROUPS) Object.assign(WEB_FORM_CAMPAIGN_GROUPS, JSON.parse(process.env.WEB_FORM_CAMPAIGN_GROUPS));
+} catch { console.warn("WEB_FORM_CAMPAIGN_GROUPS env is not valid JSON — ignoring"); }
 
 // --- Meta Lead Ads (Instant Forms) webhook config ---
 const {
@@ -250,8 +258,9 @@ app.post("/api/lead", async (req, res) => {
     }
     const leadSource = campaign || clean(b.lead_source) || LEAD_SOURCE;
     if (COLS.source)              columnValues[COLS.source]   = leadSource;
-    // Lead Source Group = "Website Form" for every quote-form submission.
-    if (COLS.sourceGroup)         columnValues[COLS.sourceGroup] = { label: WEB_SOURCE_GROUP };
+    // Lead Source Group = from the ad campaign ID the visit carried (mapped), else default.
+    const campaignId = clean(attr.utm_campaign);
+    if (COLS.sourceGroup)         columnValues[COLS.sourceGroup] = { label: WEB_FORM_CAMPAIGN_GROUPS[campaignId] || WEB_SOURCE_GROUP_DEFAULT };
     if (COLS.notes)               columnValues[COLS.notes]    = { text: buildNotes(lead, attr, leadSource) };
 
     // Marketing attribution → dedicated CRM text columns.
