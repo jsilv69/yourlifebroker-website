@@ -484,6 +484,35 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .plan-hero__card p { color: rgba(255,255,255,.84); font-size: .96rem; margin-bottom: 20px; }
 .plan-hero__card .btn { width: 100%; }
 
+/* Enticing "Call Now" CTA button (used on plan landing pages) */
+.callcta { box-shadow: 0 10px 26px rgba(182, 139, 76, .45); animation: callpulse 2.4s ease-in-out infinite; }
+.callcta:hover { animation-play-state: paused; }
+@keyframes callpulse {
+  0%, 100% { transform: translateY(0); box-shadow: 0 10px 26px rgba(182, 139, 76, .45); }
+  50% { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(182, 139, 76, .65); }
+}
+
+/* Hero "why call" card */
+.plan-hero__cta { flex-wrap: wrap; align-items: center; }
+.plan-hero__formlink { color: rgba(255,255,255,.82); font-weight: 600; font-size: 14.5px; text-decoration: underline; }
+.plan-hero__formlink:hover { color: var(--gold-500); }
+.plan-hero__callcard { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(8px); border-radius: var(--radius-lg); padding: clamp(24px, 3vw, 32px); }
+.callcard__badge { display: inline-block; background: var(--gold-500); color: var(--navy-900); font-weight: 700; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; margin-bottom: 14px; }
+.callcard__title { color: #fff; font-size: 1.4rem; margin-bottom: 16px; }
+.callcard__list { display: grid; gap: 10px; margin-bottom: 22px; }
+.callcard__list li { position: relative; padding-left: 26px; color: rgba(255,255,255,.9); font-weight: 500; font-size: .98rem; }
+.callcard__list li::before { content: "✓"; position: absolute; left: 0; color: var(--gold-500); font-weight: 800; }
+.callcard__phone { display: inline-flex; align-items: center; gap: 9px; color: #fff; font-size: 1.6rem; font-weight: 800; letter-spacing: -.01em; }
+.callcard__phone svg { width: 22px; height: 22px; color: var(--gold-500); }
+.callcard__phone:hover { color: var(--gold-500); }
+.callcard__hours { display: block; color: rgba(255,255,255,.6); font-size: 13px; margin-top: 6px; }
+
+@media (max-width: 620px) {
+  .plan-hero__cta .callcta { width: 100%; justify-content: center; font-size: 1.05rem; padding: 16px 20px; }
+  .plan-hero__cta { justify-content: center; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) { .callcta { animation: none; } }
+
 /* breadcrumb */
 .breadcrumb { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13.5px; margin-bottom: 18px; }
 .breadcrumb a { color: rgba(255,255,255,.78); transition: color .2s; }
