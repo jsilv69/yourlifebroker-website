@@ -485,7 +485,8 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .plan-hero__card .btn { width: 100%; }
 
 /* Enticing "Call Now" CTA button (used on plan landing pages) */
-.callcta { box-shadow: 0 10px 26px rgba(182, 139, 76, .45); animation: callpulse 2.4s ease-in-out infinite; }
+.callcta { color: #fff; box-shadow: 0 10px 26px rgba(182, 139, 76, .45); animation: callpulse 2.4s ease-in-out infinite; }
+.callcta:hover { color: #fff; }
 .callcta:hover { animation-play-state: paused; }
 @keyframes callpulse {
   0%, 100% { transform: translateY(0); box-shadow: 0 10px 26px rgba(182, 139, 76, .45); }
